@@ -1,0 +1,67 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id String @id @default(uuid())
+
+  userId String
+  chatId String?
+
+  points Int @default(0)
+  
+  referral Referral?
+  referred ReferralList?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Referral {
+  id String @id @default(uuid())
+
+  userId String @unique
+  user User @relation(fields: [userId], references: [id])
+
+  link String
+  identifier String @unique
+
+  referalList ReferralList[]
+}
+
+
+enum ReferralListType {
+  Channel
+  Group
+}
+
+model ReferralList {
+  id String @id @default(uuid())
+
+  referralId String
+  referral Referral @relation(fields: [referralId], references: [id])
+
+  referralType ReferralListType 
+
+  userId String @unique
+  user User @relation(fields: [userId], references: [id])
+
+  isJoinedGroup Boolean @default(false)
+  isSubscribed Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+

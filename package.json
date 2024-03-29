@@ -1,0 +1,39 @@
+{
+  "name": "chad-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js",
+    "lint": "eslint .",
+    "db:push": "prisma db push",
+    "db:pull": "prisma db pull",
+    "generate": "prisma generate",
+    "migrate": "prisma migrate dev --name init",
+    "prestart": "prisma generate"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fastify/cors": "^9.0.1",
+    "@grammyjs/auto-chat-action": "^0.1.1",
+    "@grammyjs/runner": "^2.0.3",
+    "@prisma/client": "^5.10.2",
+    "axios": "^1.6.7",
+    "dotenv": "^16.4.5",
+    "fastify": "^4.26.2",
+    "grammy": "^1.21.1",
+    "nanoid": "^5.0.6",
+    "node-cron": "^3.0.3",
+    "rate-limiter-flexible": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "eslint": "^8.57.0",
+    "prisma": "^5.10.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}
