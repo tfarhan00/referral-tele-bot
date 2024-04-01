@@ -1,16 +1,6 @@
-import { run } from "@grammyjs/runner";
-import { getMe, teleBot } from "./bot.js";
-import {
-  TELEGRAM_BOT_USERNAME,
-  TELEGRAM_CHANNEL_USERNAME,
-  TELEGRAM_CHAT_ID,
-} from "../config.js";
-import {
-  generateReferralLink,
-  getChatType,
-  parseReferralCode,
-} from "./helpers.js";
-import { start } from "repl";
+import { teleBot } from "./bot.js";
+import { TELEGRAM_BOT_USERNAME, TELEGRAM_CHANNEL_USERNAME } from "../config.js";
+import { generateReferralLink, getChatType } from "./helpers.js";
 import { InlineKeyboard } from "grammy";
 import { prismaQuery } from "../db/prisma.js";
 
@@ -48,9 +38,16 @@ export const telegramWorkers = (app, _, done) => {
       const startPayload = ctx.match;
       const userId = String(ctx.from.id);
       const chatType = getChatType(ctx.chat.type);
+      const username = String(ctx.from.username);
 
       if (chatType !== "private") {
         return await ctx.reply("DM me to start generating referral link");
+      }
+
+      if (!username) {
+        return await ctx.reply(
+          "Please set a username before using a referral link"
+        );
       }
 
       if (startPayload) {
@@ -69,6 +66,7 @@ export const telegramWorkers = (app, _, done) => {
             const savedUser = await prismaQuery.user.create({
               data: {
                 userId: userId,
+                username: username,
               },
             });
             userWithPayload = savedUser;
@@ -79,31 +77,29 @@ export const telegramWorkers = (app, _, done) => {
           return;
         }
 
-        console.log("Processing referal link");
-        const parsedReferal = parseReferralCode(startPayload);
+        console.log("Processing referral link");
+        const parsedReferralUsername = startPayload;
 
-        if (!parsedReferal) {
+        if (!parsedReferralUsername) {
           return await ctx.reply(
             `Your referral link is invalid please ask for the correct one to your referer`
           );
         }
 
-        const { userId: refUserId, identifier } = parsedReferal;
-
-        if (refUserId === userId) {
+        if (parsedReferralUsername === username) {
           return await ctx.reply(
             "You can't use your own referral link, that's illegal!"
           );
         }
 
         try {
-          const referal = await prismaQuery.referral.findUnique({
+          const referral = await prismaQuery.referral.findUnique({
             where: {
-              identifier: identifier,
+              identifier: parsedReferralUsername,
             },
           });
 
-          if (!referal) {
+          if (!referral) {
             return await ctx.reply(
               "Referral not found please use a correct link from your referrer"
             );
@@ -118,12 +114,12 @@ export const telegramWorkers = (app, _, done) => {
           );
 
           if (existingReferredUser) {
-            console.log("Refered user already exist");
+            console.log("Referred user already exist");
           } else {
             const referredUser = await prismaQuery.referralList.create({
               data: {
                 userId: userWithPayload.id,
-                referralId: referal.id,
+                referralId: referral.id,
                 referralType: "Channel",
               },
             });
@@ -165,6 +161,7 @@ export const telegramWorkers = (app, _, done) => {
         const savedUser = await prismaQuery.user.create({
           data: {
             userId: userId,
+            username: username,
           },
         });
 
@@ -179,13 +176,20 @@ export const telegramWorkers = (app, _, done) => {
       async (ctx) => {
         ctx.chatAction = "typing";
         const userId = String(ctx.from.id);
+        const username = String(ctx.from.username);
         const chatType = getChatType(ctx.chat.type);
 
         if (chatType !== "private") {
           return await ctx.reply("DM me to start generating referral link");
         }
 
-        const refLink = generateReferralLink(userId);
+        if (!username) {
+          return await ctx.reply(
+            "Please set a username before generating a referral"
+          );
+        }
+
+        const refLink = generateReferralLink(username);
 
         try {
           const user = await prismaQuery.user.findFirst({
@@ -217,7 +221,7 @@ export const telegramWorkers = (app, _, done) => {
             data: {
               userId: user.id,
               link: refLink.link,
-              identifier: refLink.identifier,
+              identifier: username,
             },
           });
 
@@ -225,7 +229,7 @@ export const telegramWorkers = (app, _, done) => {
             `This is the referral link ${createdRef.link}, give it to anyone and earn points every time they join ${TELEGRAM_CHANNEL_USERNAME}`
           );
         } catch (e) {
-          console.log("Error storing referal", e);
+          console.log("Error storing referral", e);
           return await ctx.reply(
             "There's an error while creating the referral link"
           );
@@ -310,12 +314,12 @@ export const telegramWorkers = (app, _, done) => {
           return;
         }
 
-        const referredUser = await prismaQuery.referalList.findFirst({
+        const referredUser = await prismaQuery.referralList.findFirst({
           where: {
             userId: user.id,
           },
           include: {
-            referal: true,
+            referral: true,
           },
         });
 

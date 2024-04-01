@@ -17,8 +17,10 @@ datasource db {
 model User {
   id String @id @default(uuid())
 
-  userId String
+  userId String @unique
   chatId String?
+
+  username String
 
   points Int @default(0)
   
@@ -38,7 +40,7 @@ model Referral {
   link String
   identifier String @unique
 
-  referalList ReferralList[]
+  referralList ReferralList[]
 }
 
 
